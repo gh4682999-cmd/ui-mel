@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>멜론 턴테이블</title>
+<style>
+@font-face{font-family:"ChangwonDangam";font-weight:100 900;font-style:normal;font-display:swap;src:url("fonts/ChangwonDangam.woff") format("woff")}
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#d6b0a0;--ink:#33201c;--sub:#6e4f46;--accent:#a8412d;--btn:#33201c;--btnfg:#f7e9e1;--track:#c29a8a;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#2d1f1c;--ink:#f5e6de;--sub:#c4a699;--accent:#f0a07f;--btn:#f5e6de;--btnfg:#2d1f1c;--track:#4a3530}}
+:root[data-theme="dark"],:root.car{--bg:#2d1f1c;--ink:#f5e6de;--sub:#c4a699;--accent:#f0a07f;--btn:#f5e6de;--btnfg:#2d1f1c;--track:#4a3530}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"ChangwonDangam","Noto Sans KR","Apple SD Gothic Neo",sans-serif;font-synthesis:none;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:clamp(12px,3vmin,32px)}
+.player{width:100%;display:grid;grid-template-columns:auto 1fr;gap:clamp(20px,4vw,56px);align-items:center}
+
+/* 앨범 슬리브 + 뒤에서 돌아가는 레코드 */
+.stage{position:relative;cursor:pointer;-webkit-tap-highlight-color:transparent;width:min(56vw,calc(74vh*1.475),900px);aspect-ratio:1.475/1}
+.sleeve{position:absolute;left:0;top:0;width:67.8%;height:100%;z-index:2;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;transition:background .5s;box-shadow:0 24px 40px rgba(50,20,12,.35),0 4px 10px rgba(50,20,12,.25)}
+.sleeve::after{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.16),transparent 40%,rgba(0,0,0,.12))}
+.sleeve span{position:relative;z-index:1;padding:7%;text-align:center;color:#fff;font-weight:800;font-size:clamp(14px,3vw,28px);text-shadow:0 2px 8px rgba(0,0,0,.5)}
+.disc{position:absolute;top:2.5%;height:95%;aspect-ratio:1/1;left:30%;z-index:1;transition:left .9s cubic-bezier(.4,.1,.2,1),transform .9s cubic-bezier(.4,.1,.2,1),z-index 0s linear .45s;filter:drop-shadow(0 14px 20px rgba(50,20,12,.4))}
+.stage.on .disc{left:35.6%}
+/* 터치하면 레코드가 앨범 자켓 위로 올라와 가운데에 놓임 */
+.stage.front .disc{left:1.7%;z-index:3;transform:scale(1.04);transition:left .9s cubic-bezier(.4,.1,.2,1),transform .9s cubic-bezier(.4,.1,.2,1),z-index 0s;filter:drop-shadow(0 22px 30px rgba(50,20,12,.55))}
+.record{position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at center,#0e0e0e 0 2px,#1b1b1b 2px 4px);animation:spin 3.2s linear infinite;animation-play-state:paused}
+.stage.on .record{animation-play-state:running}
+.record::after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 20deg,transparent 0 18%,rgba(255,255,255,.14) 24%,transparent 32% 68%,rgba(255,255,255,.1) 75%,transparent 82%)}
+/* 레코드 전체 면에 앨범 자켓 이미지를 채움 (픽처 디스크) */
+.art{position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 5px rgba(0,0,0,.6);transition:background .5s}
+.art::after{content:"";position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at center,rgba(0,0,0,.16) 0 1px,transparent 1px 4px)}
+.art::before{content:"";position:absolute;z-index:1;left:50%;top:50%;width:6%;aspect-ratio:1/1;border-radius:50%;background:var(--bg);transform:translate(-50%,-50%);box-shadow:0 0 0 .8vmin rgba(0,0,0,.55),inset 0 0 0 2px rgba(0,0,0,.35)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.bgl{position:fixed;inset:0;z-index:-1;opacity:0;transition:opacity .9s ease}
+.panel{display:flex;flex-direction:column;gap:clamp(14px,3vmin,32px);min-width:0}
+.meta small{color:var(--sub);font-size:clamp(12px,1.9vmin,18px)}
+h1{margin:4px 0 2px;font-size:clamp(26px,5.2vmin,60px);overflow-wrap:anywhere;line-height:1.15;font-weight:800;letter-spacing:-.02em}
+.meta p{margin:0;font-size:clamp(16px,2.6vmin,28px);color:var(--sub)}
+.bar{height:clamp(6px,1.1vmin,12px);border-radius:6px;background:var(--track);cursor:pointer;position:relative}
+.bar b{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--accent);width:0}
+.time{display:flex;justify-content:space-between;font-size:clamp(12px,1.8vmin,18px);color:var(--sub);margin-top:8px;font-variant-numeric:tabular-nums}
+.ctl{display:flex;align-items:center;justify-content:space-between;gap:12px}
+button{border:0;cursor:pointer;font:inherit;color:var(--btnfg);background:var(--btn);border-radius:50%;width:clamp(56px,10vmin,96px);height:clamp(56px,10vmin,96px);display:grid;place-items:center}
+button.sm{width:clamp(48px,8.5vmin,80px);height:clamp(48px,8.5vmin,80px);background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--track)}
+button.play{width:clamp(72px,14vmin,128px);height:clamp(72px,14vmin,128px)}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+button svg{width:44%;height:44%;fill:currentColor}
+.list{display:flex;flex-direction:column;gap:6px;max-height:min(240px,28vh);overflow-y:auto}
+.list button{width:auto;height:auto;border-radius:12px;background:transparent;color:var(--ink);padding:10px 12px;display:flex;gap:12px;align-items:center;text-align:left;justify-content:flex-start}
+.list button.cur{background:var(--track)}
+.list em{width:34px;height:34px;border-radius:6px;flex:none}
+.list span{flex:1}.list small{color:var(--sub)}
+.note{font-size:12px;color:var(--sub);line-height:1.5;margin:0}
+@media (max-aspect-ratio:1/1),(max-width:520px){
+  .player{grid-template-columns:1fr;justify-items:center;gap:clamp(16px,3vh,32px)}
+  .stage{width:min(92vw,calc(42vh*1.475),760px)}
+  .panel{width:min(92vw,760px)}
+}
+/* 가로로 낮은 화면(폰 가로): 목록·안내 문구를 숨겨 한 화면에 맞춤 */
+@media (orientation:landscape) and (max-height:480px){
+  .list,.note{display:none}
+  .stage{width:min(56vw,calc(78vh*1.475))}
+}
+@media (prefers-reduced-motion:reduce){.record{animation-duration:14s}.disc{transition:none}}
+
+/* 차량 12.3인치(약 1920x720)처럼 가로로 아주 긴 화면(가로:세로 2:1 이상) */
+:root.car,.car body{height:100%}
+.car body{padding:0;display:block;min-height:0;overflow:hidden}
+.car .player{max-width:none;height:100%;grid-template-columns:auto 1fr;gap:5vw;padding:0 5vw}
+.car .stage{height:72vh;width:auto;max-width:56vw}
+.car .panel{gap:4vh}
+.car .meta small{font-size:clamp(12px,3.2vh,32px)}
+.car h1{font-size:clamp(24px,9.5vh,100px);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.car .meta p{font-size:clamp(16px,4.8vh,48px)}
+.car .bar{height:clamp(8px,2.2vh,16px);border-radius:8px}.car .bar b{border-radius:8px}
+.car .time{font-size:clamp(12px,3.4vh,32px)}
+.car .ctl{justify-content:space-around}
+.car button.sm{width:max(44px,17vh);height:max(44px,17vh)}
+.car button.play{width:max(56px,23vh);height:max(56px,23vh)}
+.car .list,.car .note{display:none}
+</style>
+</head>
+<body>
+<div class="bgl" id="bg1" style="opacity:1"></div><div class="bgl" id="bg2"></div>
+<main class="player">
+  <div class="stage" id="stage" role="button" tabindex="0" aria-pressed="false" aria-label="레코드판을 앨범 자켓 위로 올리기">
+    <div class="disc"><div class="record"><div class="art" id="art"></div></div></div>
+    <div class="sleeve" id="sleeve"><span id="sleeveTxt"></span></div>
+  </div>
+  <section class="panel">
+    <div class="meta">
+      <small id="state">일시정지</small>
+      <h1 id="title"></h1>
+      <p id="artist"></p>
+    </div>
+    <div>
+      <div class="bar" id="bar" role="slider" aria-label="재생 위치"><b id="fill"></b></div>
+      <div class="time"><span id="cur">0:00</span><span id="dur">0:00</span></div>
+    </div>
+    <div class="ctl">
+      <button class="sm" id="prev" aria-label="이전 곡"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+      <button class="play" id="play" aria-label="재생"><svg viewBox="0 0 24 24" id="ico"><path d="M7 4v16l13-8z"/></svg></button>
+      <button class="sm" id="next" aria-label="다음 곡"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+    </div>
+    <div class="list" id="list"></div>
+    <p class="note">멜론이 재생 중이면 그 곡을 그대로 보여주고 재생·이전·다음을 멜론에 전달합니다. 멜론이 꺼져 있으면 차트 TOP100을 보여줍니다. 소리는 멜론 앱에서만 나옵니다.</p>
+  </section>
+</main>
+<script>
+(function(){const mq=matchMedia("(orientation:landscape) and (min-aspect-ratio:2/1)");const f=()=>document.documentElement.classList.toggle("car",mq.matches||location.hash==="#car");mq.addEventListener("change",f);addEventListener("hashchange",f);f()})();
+
+const PAL=[["#ff9a76","#8e44ad"],["#2ec4b6","#1b3a6b"],["#f9c74f","#e63946"],["#90be6d","#264653"]];
+let T=[{t:"불러오는 중…",a:"",d:180,c:PAL[0],img:"",like:0}];
+let i=0,pos=0,playing=false,timer=null,sync=false;
+const $=id=>document.getElementById(id);
+const fmt=s=>Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
+const grad=c=>"radial-gradient(circle at 30% 30%,"+c[0]+","+c[1]+")";
+const bg=x=>x.img?"center/cover url(\""+x.img+"\")":grad(x.c);
+/* 앨범 자켓 색상으로 전체 배경 그라데이션 생성 (곡이 바뀌면 부드럽게 교체) */
+const parse=h=>{const n=parseInt(h.slice(1),16);return[n>>16&255,n>>8&255,n&255]};
+function palette(s){
+  return new Promise(res=>{
+    const fb=()=>res(s.c.map(parse));
+    if(!s.img)return fb();
+    const im=new Image();im.crossOrigin="anonymous";
+    im.onload=()=>{try{
+      const W=24,cv=document.createElement("canvas");cv.width=W;cv.height=W;
+      const x=cv.getContext("2d");x.drawImage(im,0,0,W,W);
+      const d=x.getImageData(0,0,W,W).data;
+      const reg=(y0,y1)=>{let r=0,g=0,b=0,n=0;for(let y=y0;y<y1;y++)for(let xx=0;xx<W;xx++){const k=(y*W+xx)*4;r+=d[k];g+=d[k+1];b+=d[k+2];n++}return[r/n,g/n,b/n]};
+      res([reg(0,8),reg(16,24)]);
+    }catch(e){fb()}};
+    im.onerror=fb;im.src=s.img;
+  });
+}
+let bgLayer=0,bgTok=0;
+async function setBg(s){
+  const my=++bgTok,p=await palette(s);
+  if(my!==bgTok)return;
+  const night=document.documentElement.classList.contains("car")||matchMedia("(prefers-color-scheme:dark)").matches;
+  const adj=c=>night?c.map(v=>v*.45):c.map(v=>v+(255-v)*.2);
+  const [a,b]=p.map(adj);
+  const css=c=>"rgb("+c.map(Math.round).join(",")+")";
+  const lum=c=>(.2126*c[0]+.7152*c[1]+.0722*c[2])/255;
+  const mid=[(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2];
+  const darkText=(lum(a)+lum(b))/2>.55;
+  const R=document.documentElement.style;
+  const set=(k,v)=>R.setProperty(k,v);
+  set("--bg",css(mid));
+  if(darkText){set("--ink","#2a1a16");set("--sub","rgba(42,26,22,.72)");set("--btn","#2a1a16");set("--btnfg","#fff6ee");set("--track","rgba(0,0,0,.18)");set("--accent","#2a1a16")}
+  else{set("--ink","#fff6ee");set("--sub","rgba(255,246,238,.76)");set("--btn","#fff6ee");set("--btnfg","#2a1a16");set("--track","rgba(255,255,255,.22)");set("--accent","#fff6ee")}
+  const L=[$("bg1"),$("bg2")];
+  bgLayer^=1;
+  L[bgLayer].style.background="linear-gradient(160deg,"+css(a)+" 0%,"+css(b)+" 100%)";
+  L[bgLayer].style.opacity=1;L[bgLayer^1].style.opacity=0;
+}
+function setArt(s){$("art").style.background=bg(s);$("sleeve").style.background=bg(s);$("sleeveTxt").textContent=s.img?"":s.t;setBg(s)}
+function render(){
+  const s=T[i];
+  $("title").textContent=s.t;$("artist").textContent=s.a;
+  setArt(s);
+  $("dur").textContent="미리보기";
+  $("list").innerHTML="";
+  T.forEach((x,n)=>{
+    const b=document.createElement("button");
+    if(n===i)b.className="cur";
+    b.innerHTML='<em style="background:'+bg(x)+'"></em><span>'+x.t+'<br><small>'+x.a+'</small></span><small>'+(x.like?"♡ "+x.like.toLocaleString():"")+'</small>';
+    b.onclick=()=>go(n);
+    $("list").appendChild(b);
+  });
+  tick();
+}
+function tick(){
+  const s=T[i];
+  $("cur").textContent=fmt(pos);
+  $("fill").style.width=Math.min(100,pos/s.d*100)+"%";
+}
+function setPlay(p){
+  playing=p;
+  $("stage").classList.toggle("on",p);
+  $("state").textContent=p?"재생 중":"일시정지";
+  $("play").setAttribute("aria-label",p?"일시정지":"재생");
+  $("ico").innerHTML=p?'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>':'<path d="M7 4v16l13-8z"/>';
+  clearInterval(timer);
+  if(p)timer=setInterval(()=>{if(sync){pos=Math.min(pos+1,T[i].d);tick();return}pos+=1;if(pos>=T[i].d)go(i+1);else tick()},1000);
+}
+function go(n){i=(n+T.length)%T.length;pos=0;render();if(playing)setPlay(true)}
+
+/* 멜론 재생 정보 수신 (안드로이드 앱이 window.onNowPlaying 호출) */
+function applyNow(m){
+  sync=true;
+  T=[{t:m.title,a:m.artist||"",d:m.duration>0?Math.round(m.duration/1000):180,c:PAL[0],img:m.art||"",like:0}];
+  i=0;pos=Math.round((m.position||0)/1000);
+  const s=T[0];
+  $("title").textContent=s.t;$("artist").textContent=s.a;
+  setArt(s);
+  $("dur").textContent=fmt(s.d);$("list").innerHTML="";
+  tick();setPlay(!!m.playing);
+  $("state").textContent=m.playing?"멜론 재생 중":"멜론 일시정지";
+}
+window.onNowPlaying=j=>{try{applyNow(typeof j==="string"?JSON.parse(j):j)}catch(e){}};
+const cmd=c=>window.Android&&window.Android.cmd(c);
+
+/* 서버 연결 실패 시 샘플 데이터 */
+const DEMO=[["새벽 드라이브","예시 아티스트 A",128400],["한강의 밤","예시 아티스트 B",96210],["겨울 오후","예시 아티스트 C",75320],["고속도로 위에서","예시 아티스트 D",61870],["비 오는 날","예시 아티스트 E",54090]];
+function useDemo(){if(sync)return;T=DEMO.map((x,n)=>({t:x[0],a:x[1],d:180,c:PAL[n%4],img:"",like:x[2]}));i=0;pos=0;render();$("state").textContent="샘플 데이터 (서버 미연결)"}
+async function load(path){
+  try{
+    const r=await fetch(path);if(!r.ok)throw 0;
+    const j=await r.json();if(sync)return;
+    T=j.slice(0,30).map((x,n)=>({t:x.title,a:x.artist,d:180,c:PAL[n%4],img:x.albumImg||"",like:x.likeCnt||0}));
+    i=0;pos=0;render();
+  }catch(e){useDemo()}
+}
+$("play").onclick=()=>sync?cmd(playing?"pause":"play"):setPlay(!playing);
+$("next").onclick=()=>sync?cmd("next"):go(i+1);
+$("prev").onclick=()=>{if(sync)return cmd("prev");pos>3?(pos=0,tick()):go(i-1)};
+$("bar").onclick=e=>{if(sync)return;const r=e.currentTarget.getBoundingClientRect();pos=Math.floor((e.clientX-r.left)/r.width*T[i].d);tick()};
+
+const st=$("stage");
+function flip(){const f=st.classList.toggle("front");st.setAttribute("aria-pressed",f)}
+st.onclick=flip;
+st.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();flip()}};
+addEventListener("hashchange",()=>setBg(T[i]));
+matchMedia("(orientation:landscape) and (min-aspect-ratio:2/1)").addEventListener("change",()=>setBg(T[i]));
+render();load("/api/chart");
+</script>
+</body>
+</html>
